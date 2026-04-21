@@ -1,0 +1,334 @@
+{
+  "info": {
+    "_postman_id": "7d113797-72c7-4f2f-9c32-67bd5224c00d",
+    "name": "Distributed Job Scheduler",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Postman collection for testing the Distributed Job Scheduler API."
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Submit Email Job",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"job created\", function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const response = pm.response.json();",
+              "pm.collectionVariables.set(\"jobId\", response.id);",
+              "",
+              "pm.test(\"job id saved\", function () {",
+              "  pm.expect(pm.collectionVariables.get(\"jobId\")).to.be.a(\"string\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idempotencyKey\": \"email-job-{{$timestamp}}\",\n  \"type\": \"EMAIL\",\n  \"payload\": {\n    \"to\": \"alice@example.com\",\n    \"subject\": \"Welcome\",\n    \"body\": \"Hello from Postman\"\n  },\n  \"priority\": 1,\n  \"maxRetries\": 3\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/jobs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "jobs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Job By ID",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.collectionVariables.get(\"jobId\")) {",
+              "  throw new Error(\"Run 'Submit Email Job' first or set collection variable jobId.\");",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"job fetched\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/jobs/{{jobId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "jobs",
+            "{{jobId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Submit Delayed Report Job",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"delayed job created\", function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const response = pm.response.json();",
+              "pm.collectionVariables.set(\"delayedJobId\", response.id);",
+              "",
+              "pm.test(\"delayed job starts pending\", function () {",
+              "  pm.expect(response.status).to.eql(\"PENDING\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idempotencyKey\": \"report-job-{{$timestamp}}\",\n  \"type\": \"REPORT\",\n  \"payload\": {\n    \"reportName\": \"daily-summary\",\n    \"format\": \"PDF\"\n  },\n  \"priority\": 2,\n  \"maxRetries\": 3,\n  \"scheduledAt\": \"{{scheduledAt}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/jobs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "jobs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Delayed Job By ID",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.collectionVariables.get(\"delayedJobId\")) {",
+              "  throw new Error(\"Run 'Submit Delayed Report Job' first or set collection variable delayedJobId.\");",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"delayed job fetched\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/jobs/{{delayedJobId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "jobs",
+            "{{delayedJobId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Submit Duplicate Baseline Job",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"baseline duplicate job created\", function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const response = pm.response.json();",
+              "pm.collectionVariables.set(\"duplicateJobId\", response.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idempotencyKey\": \"{{duplicateKey}}\",\n  \"type\": \"EMAIL\",\n  \"payload\": {\n    \"to\": \"alice@example.com\",\n    \"subject\": \"Duplicate test\",\n    \"body\": \"Should return the same job\"\n  },\n  \"priority\": 1,\n  \"maxRetries\": 3\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/jobs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "jobs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Resubmit Duplicate Idempotency Key",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.collectionVariables.get(\"duplicateJobId\")) {",
+              "  throw new Error(\"Run 'Submit Duplicate Baseline Job' first.\");",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"duplicate submission accepted\", function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const response = pm.response.json();",
+              "const originalJobId = pm.collectionVariables.get(\"duplicateJobId\");",
+              "",
+              "pm.test(\"same job id returned for duplicate key\", function () {",
+              "  pm.expect(response.id).to.eql(originalJobId);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idempotencyKey\": \"{{duplicateKey}}\",\n  \"type\": \"EMAIL\",\n  \"payload\": {\n    \"to\": \"alice@example.com\",\n    \"subject\": \"Duplicate test\",\n    \"body\": \"Should return the same job\"\n  },\n  \"priority\": 1,\n  \"maxRetries\": 3\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/jobs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "jobs"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "if (!pm.collectionVariables.get(\"duplicateKey\")) {",
+          "  pm.collectionVariables.set(\"duplicateKey\", \"duplicate-key-static\");",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "jobId",
+      "value": ""
+    },
+    {
+      "key": "delayedJobId",
+      "value": ""
+    },
+    {
+      "key": "duplicateKey",
+      "value": "duplicate-key-static"
+    },
+    {
+      "key": "duplicateJobId",
+      "value": ""
+    }
+  ]
+}

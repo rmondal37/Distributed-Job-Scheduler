@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: distributed-job-scheduler
+  datasource:
+    url: jdbc:postgresql://localhost:5433/job_scheduler
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: job-scheduler-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    listener:
+      concurrency: 3
+
+job:
+  kafka:
+    topic:
+      high: jobs.high
+      medium: jobs.medium
+      low: jobs.low
+      retry: jobs.retry
+      dlq: jobs.dlq
+  retry:
+    base-delay-ms: 1000
+    max-delay-ms: 60000
+  scheduler:
+    poll-interval-ms: 5000
+  reaper:
+    timeout-ms: 300000
+    poll-interval-ms: 60000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    kafka:
+      lag:
+        poll-interval-ms: 15000
+  prometheus:
+    metrics:
+      export:
+        enabled: true
